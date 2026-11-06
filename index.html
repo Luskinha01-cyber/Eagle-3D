@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AQUILA MK-IX — Experiência Biônica 3D / WebGL</title>
+    <meta
+      name="description"
+      content="Animação interativa 3D/WebGL em Three.js guiada pelo movimento de scroll: engenharia biônica, engrenagens de latão e envergadura articulada."
+    />
+
+    <!-- Fonts: Space Grotesk (Display), Plus Jakarta Sans (Body), JetBrains Mono (Telemetry) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Native ES Module Import Map fallback (compatible with Three.js r183 & static servers) -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.183.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <a href="#conteudo-principal" class="skip-link">Pular para o conteúdo</a>
+
+    <!-- Fixed 3D WebGL Viewport -->
+    <div id="canvas-stage" aria-hidden="true">
+      <canvas id="webgl-canvas"></canvas>
+      <div class="studio-vignette"></div>
+    </div>
+
+    <!-- Loading & Error States -->
+    <div id="loader-overlay" role="status" aria-live="polite">
+      <div class="loader-inner">
+        <span class="loader-tag">INICIALIZANDO MALHA WEBGL // THREE.JS R183</span>
+        <div class="loader-bar"><span id="loader-fill"></span></div>
+      </div>
+    </div>
+
+    <div id="webgl-error" role="alert" hidden>
+      <h2>WebGL indisponível neste dispositivo</h2>
+      <p>Ative a aceleração gráfica no navegador para visualizar a escultura 3D interativa.</p>
+    </div>
+
+    <!-- Top Architectural HUD Header -->
+    <header class="hud-header">
+      <div class="brand-lockup">
+        <span class="brand-dot" aria-hidden="true"></span>
+        <div>
+          <span class="brand-code">UNIDADE BIÔNICA // SÉRIE 09</span>
+          <strong class="brand-name">AQUILA MK-IX</strong>
+        </div>
+      </div>
+
+      <div class="hud-telemetry" aria-label="Telemetria cinemática em tempo real">
+        <div class="telemetry-item">
+          <span class="telemetry-label">SCROLL</span>
+          <span class="telemetry-value" id="tel-scroll">000%</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="telemetry-label">ENVERGADURA</span>
+          <span class="telemetry-value" id="tel-wingspan">018°</span>
+        </div>
+        <div class="telemetry-item hide-mobile">
+          <span class="telemetry-label">ROTOR CENTRAL</span>
+          <span class="telemetry-value" id="tel-rpm">1113 RPM</span>
+        </div>
+      </div>
+
+      <div class="hud-actions">
+        <button
+          type="button"
+          id="btn-explode-top"
+          class="hud-btn"
+          aria-pressed="false"
+          title="Expandir placas de armadura"
+        >
+          Armadura
+        </button>
+        <button
+          type="button"
+          id="btn-theme"
+          class="hud-btn"
+          aria-pressed="false"
+          aria-label="Alternar entre Estúdio Claro e Hangar Escuro"
+        >
+          Hangar
+        </button>
+      </div>
+    </header>
+
+    <!-- Right-Edge Chapter & Scroll Progress Rail -->
+    <nav class="scroll-rail" aria-label="Capítulos da animação">
+      <div class="rail-track" aria-hidden="true">
+        <div class="rail-progress" id="rail-progress"></div>
+      </div>
+      <ol class="rail-markers">
+        <li><button type="button" class="rail-dot is-active" data-chapter="0" aria-label="Ir para Capítulo 1: Pouso de Precisão">01</button></li>
+        <li><button type="button" class="rail-dot" data-chapter="1" aria-label="Ir para Capítulo 2: Sistema Óptico">02</button></li>
+        <li><button type="button" class="rail-dot" data-chapter="2" aria-label="Ir para Capítulo 3: Núcleo de Engrenagens">03</button></li>
+        <li><button type="button" class="rail-dot" data-chapter="3" aria-label="Ir para Capítulo 4: Cinemática de Voo">04</button></li>
+        <li><button type="button" class="rail-dot" data-chapter="4" aria-label="Ir para Capítulo 5: Inspeção 360 graus">05</button></li>
+      </ol>
+    </nav>
+
+    <!-- Free 360° Mode Banner -->
+    <div id="orbit-banner" class="orbit-banner" hidden>
+      <span>Modo 360° ativo — arraste para girar e use a roda para aproximar</span>
+      <button type="button" id="btn-exit-orbit" class="orbit-exit-btn">Voltar ao Scroll</button>
+    </div>
+
+    <!-- Scroll-Driven Editorial Track -->
+    <main id="conteudo-principal" class="scroll-story">
+      <!-- CHAPTER 01: PERCH / HERO -->
+      <section class="story-section section-hero" data-index="0">
+        <div class="editorial-panel align-left">
+          <p class="chapter-kicker">01 / ARQUITETURA AVIÁRIA SINTÉTICA</p>
+          <h1>Engenharia biônica esculpida para o voo.</h1>
+          <p class="chapter-lead">
+            Placas em cerâmica branca acetinada, endoesqueleto em titânio grafite e
+            engrenagens internas em latão forjado. Role a página para articular cada
+            junta mecânica em tempo real.
+          </p>
+          <div class="scroll-cue" aria-hidden="true">
+            <span class="cue-wheel"><span class="cue-dot"></span></span>
+            <span class="cue-text">ROLE PARA ARTICULAR O MODELO 3D</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- CHAPTER 02: CRANIAL & OPTICAL FOCUS -->
+      <section class="story-section" data-index="1">
+        <div class="editorial-panel align-right">
+          <p class="chapter-kicker">02 / RASTREAMENTO ÓPTICO NEURAL</p>
+          <h2>Íris concêntrica ciano &amp; mandíbula articulada.</h2>
+          <p class="chapter-body">
+            Sob a crista supraorbital em compósito branco, o conjunto óptico opera com
+            anéis estabilizados em safira sintética. O bico curvo em liga âmbar-titânio
+            responde com micro-abertura sincronizada ao foco visual.
+          </p>
+          <dl class="spec-grid">
+            <div>
+              <dt>Lente Focal</dt>
+              <dd>Íris Dupla 380nm</dd>
+            </div>
+            <div>
+              <dt>Articulação Cervical</dt>
+              <dd>4 Colares Laminares</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <!-- CHAPTER 03: EXPLODED ENDOSKELETON & GEARS -->
+      <section class="story-section" data-index="2">
+        <div class="editorial-panel align-left">
+          <p class="chapter-kicker">03 / NÚCLEO MECÂNICO EXPANDIDO</p>
+          <h2>Engrenagens em latão &amp; pistões hidráulicos.</h2>
+          <p class="chapter-body">
+            As carenagens peitorais e escapulares se afastam sobre seus eixos normais
+            para expor o trem de engrenagens contra-rotativas, aletas térmicas e dutos
+            pressurizados do chassi central.
+          </p>
+          <dl class="spec-grid">
+            <div>
+              <dt>Transmissão</dt>
+              <dd>8 Rotores Sincronizados</dd>
+            </div>
+            <div>
+              <dt>Revestimento</dt>
+              <dd>Cerâmica Clearcoat</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <!-- CHAPTER 04: FULL WINGSPAN FLIGHT -->
+      <section class="story-section section-flight" data-index="3">
+        <div class="editorial-panel align-bottom-left">
+          <p class="chapter-kicker">04 / CINEMÁTICA DE ENVERGADURA</p>
+          <h2>22 lâminas primárias em abertura total.</h2>
+          <p class="chapter-body">
+            Ombro, cotovelo e carpo estendem-se simultaneamente em três estágios,
+            abrindo as penas primárias com curvatura aerodinâmica real e resposta à
+            velocidade do scroll.
+          </p>
+        </div>
+      </section>
+
+      <!-- CHAPTER 05: INTERACTIVE 360 INSPECTION -->
+      <section class="story-section section-inspect" data-index="4">
+        <div class="editorial-panel align-left inspect-card">
+          <p class="chapter-kicker">05 / BANCADA DE INSPEÇÃO INTERATIVA</p>
+          <h2>Explore cada ângulo em 360°.</h2>
+          <p class="chapter-body">
+            Assuma o controle manual da câmera ou alterne os modos técnicos de
+            visualização da malha poligonal e separação estrutural das placas.
+          </p>
+
+          <div class="inspect-controls" role="group" aria-label="Controles de inspeção 3D">
+            <button type="button" id="btn-orbit" class="ctrl-btn ctrl-primary" aria-pressed="false">
+              Giro 360° Livre
+            </button>
+            <button type="button" id="btn-explode" class="ctrl-btn" aria-pressed="false">
+              Expandir Armadura
+            </button>
+            <button type="button" id="btn-wireframe" class="ctrl-btn" aria-pressed="false">
+              Malha Técnica
+            </button>
+            <button type="button" id="btn-top" class="ctrl-btn">
+              Voltar ao Topo
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
+
